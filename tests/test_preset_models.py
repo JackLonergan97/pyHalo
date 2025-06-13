@@ -170,25 +170,23 @@ class TestPresetModels(object):
             subhalo_infall_concentrations = np.array([16.0, 20.0])
             subhalo_final_bound_masses = subhalo_infall_masses / 2
             subhalo_infall_redshifts = np.array([2.0, 3.0])
-            subhalo_truncation_radii_kpc = np.array([5.0, 6.0])
+            subhalo_truncation_radii_Mpc = np.array([0.005, 0.006])
             subhalo_x_Mpc = np.array([0.001, 0.001])
             subhalo_y_Mpc = np.array([0.001, 0.001])
-            return subhalo_infall_masses, subhalo_infall_concentrations, subhalo_final_bound_masses, subhalo_infall_redshifts, subhalo_truncation_radii_kpc, subhalo_x_Mpc, subhalo_y_Mpc
+            return subhalo_infall_masses, subhalo_infall_concentrations, subhalo_final_bound_masses, subhalo_infall_redshifts, subhalo_truncation_radii_Mpc, subhalo_x_Mpc, subhalo_y_Mpc
 
         concentrations = np.array([16.0, 20.0])
         mass_array = np.array([10 ** 7, 10 ** 8])
         infall_redshifts = np.array([2.0, 3.0])
-        truncation_radii = np.array([5.0, 6.0])
-        emulator_kwargs = {'emulator_data_function': emulator_input_callable}
+        truncation_radii = np.array([0.005, 0.006])
 
-        dm_subhalo_emulator = DMFromEmulator(0.5, 1.5, **emulator_kwargs)
+        dm_subhalo_emulator = DMFromEmulator(0.5, 1.5, emulator_input_callable)
         _ = dm_subhalo_emulator.lensing_quantities()
         for i, halo in enumerate(dm_subhalo_emulator.halos):
             npt.assert_equal(halo.mass, mass_array[i])
             npt.assert_equal(halo.c, concentrations[i])
-            #npt.assert_equal(halo.bound_mass, mass_array[i]/2)
             npt.assert_equal(halo.z_infall, infall_redshifts[i])
-            #npt.assert_equal(halo.params_physical['r_trunc_kpc'], truncation_radii[i])
+            npt.assert_equal(halo.params_physical['r_trunc_kpc'], truncation_radii[i]*1e3)
             npt.assert_almost_equal(halo.x, 0.1584666, 4)
             npt.assert_almost_equal(halo.y, 0.1584666, 4)
 

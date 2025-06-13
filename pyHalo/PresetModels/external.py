@@ -172,7 +172,7 @@ def DMFromGalacticus(galacticus_hdf5,z_source,cone_opening_angle_arcsec,tree_ind
 
     return halos_LOS.join(subhalos_from_params)
 
-def DMFromEmulator(z_lens, z_source, emulator_data_function, cone_opening_angle_arcsec = 8.0):
+def DMFromEmulator(z_lens, z_source, emulator_data_function, cone_opening_angle_arcsec = 8.0, preset_model_los = 'CDM', **kwargs_los):
     
     """
     Generate a pyHalo realization from an emulator trained on Galacticus simulations
