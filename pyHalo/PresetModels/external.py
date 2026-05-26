@@ -50,6 +50,10 @@ def DMFromGalacticus(galacticus_hdf5,z_source,cone_opening_angle_arcsec,tree_ind
     For galacticus output files: All trees should output at the same redshift. The final output should include only one host halo per tree.
     An example galacticus output and it's parameter file can be found in example_notebooks/data
     """
+
+    print('galacticus_hdf5: ', galacticus_hdf5)
+    jkl
+
     #Avoid circular import
     from pyHalo.preset_models import preset_model_from_name
 
@@ -182,7 +186,6 @@ def DMFromEmulator(z_lens, z_source, emulator_data_function, cone_opening_angle_
     :param emulator_data_function: a callable function that on each call returns the properties of halos from the emulator
     :return: a pyHalo realization object
     """
-    print(emulator_data_function)
     #emulator_data = emulator_kwargs.pop('emulator_input') # the pop command returns the value of the key in parentheses, then "pops" that entry from the dictionary
     data = emulator_data_function()
 
@@ -205,6 +208,23 @@ def DMFromEmulator(z_lens, z_source, emulator_data_function, cone_opening_angle_
     rt = data[4] # This has an MPC_TO_KPC conversion in the tabulate_params() function
     x_kpc = data[5] * MPC_TO_KPC
     y_kpc = data[6] * MPC_TO_KPC
+
+    # Specifically entering Galacticus data
+    #f = h5py.File('gal_outputs/darkMatterOnlySubHalosCDM_res6_' + str(job_index) + '.hdf5', 'r')
+    #mergerTreeBuildMassesGroup = f['Parameters/mergerTreeBuildMasses']
+    #massResolutionGroup = f['Parameters/mergerTreeMassResolution']
+    #massResolution = massResolutionGroup.attrs['massResolution']
+    #isCentral = f['Outputs/Output1/nodeData/nodeIsIsolated'][:]
+    #treeIndex = f['Outputs/Output1/nodeData/mergerTreeIndex'][:]
+    #subhalos = (isCentral == 0) & (massInfall > 2.0*massResolution) & (treeIndex == str(n_keep))
+
+    #massInfall = f['Outputs/Output1/nodeData/massHaloEnclosedCurrent'][:][subhalos]
+    #concentration = f['Outputs/Output1/nodeData/concentration'][:][subhalos]
+    #massBound = f['Outputs/Output1/nodeData/satelliteBoundMass'][:][subhalos]
+    #redshiftLastIsolated = f['Outputs/Output1/nodeData/redshiftLastIsolated'][:][subhalos]
+    #rt = f['Outputs/Output1/nodeData/radiusTidalTruncationNFW'][:][subhalos]
+    #x_kpc = f['Outputs/Output1/nodeData/positionOrbitalX'][:][subhalos] * MPC_TO_KPC
+    #y_kpc = f['Outputs/Output1/nodeData/positionOrbitalY'][:][subhalos] * MPC_TO_KPC
 
     r_vir = ((3 * h * massInfall)/(4 * 200 * np.pi * pyhalo.lens_cosmo._nfw_param.rhoc_z(lens_redshifts)))**(1/3)
     r_vir = r_vir/h
