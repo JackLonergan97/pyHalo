@@ -2,7 +2,7 @@ import numpy as np
 from pyHalo.Halos.HaloModels.NFW_core_trunc import TNFWCHaloEvolving, TNFWCHaloParametric
 from pyHalo.Halos.HaloModels.sis import SIS, MassiveGalaxy
 from pyHalo.Halos.HaloModels.powerlaw import PowerLawSubhalo, PowerLawFieldHalo
-from pyHalo.Halos.HaloModels.globular_cluster import GlobularCluster
+from pyHalo.Halos.HaloModels.globular_cluster import GlobularClusterKing
 from pyHalo.Halos.HaloModels.generalized_nfw import GeneralNFWSubhalo, GeneralNFWFieldHalo
 from pyHalo.Halos.HaloModels.core_collapsed_halo import CoreCollapsedHalo, CoreCollapsedHaloBH
 from pyHalo.single_realization import Realization
@@ -167,30 +167,32 @@ class RealizationExtensions(object):
                                    self._realization.geometry)
         return mbh_realization
 
-    def add_globular_clusters(self, log10_mgc_mean, log10_mgc_sigma, rendering_radius_arcsec,
-                              gc_density_profile='SPL_CORE',
-                              gamma_mean=6.0, gamma_sigma=0.3,
-                              gc_size_mean=3.0, gc_size_sigma=1.0,
+    def add_globular_clusters(self, log10_mgc_mean,
+                              log10_mgc_sigma,
+                              rendering_radius_arcsec,
+                              gc_density_profile='KING',
+                              gc_size_mean=3.0,
+                              gc_size_sigma=0.2,
+                              gc_concentration_mean=1.5,
+                              gc_concentration_sigma=0.1,
                               gc_surface_mass_density=10 ** 5.6,
-                              center_x=0, center_y=0):
+                              center_x=0,
+                              center_y=0):
         """
         Add globular clusters at main deflector redshift following a log-normal mass distribution
-        :param log10_mgc_mean: the median log10(mass) of the GC's
-        :param log10_mgc_sigma: the standard deviation of the Gaussian mass function for log10(m)
-        :param rendering_radius_arcsec [arcsec]: sets the area around (center_x, center_y) where the GC's appear; GC's are
-        distributed uniformly in a circle centered at (center_x, center_y) with this radius
-        :param gc_density_profile: either SPL_CORE (cored, steep-outer-slope power law) or PTMASS
-        :param gamma_mean: mean logarithmic density slope outside the core (rho ~ r^-gamma); use ~6 to
-        mimic the sharp tidal truncation of a King profile (must be > 3 for finite mass)
-        :param gamma_sigma: half the width of the uniform distribution of gamma
-        :param gc_size_mean: the core radius of a 10^5 M_sun GC in parsecs. For the steep default slope
-        the core radius is essentially the projected half-mass radius, so this is the GC's physical size.
-        The size of each GC scales as (m/10^5)^(1/3).
-        :param gc_size_sigma: half the width of the uniform distribution of the core radius [pc]
-        :param gc_surface_mass_density: the surface mass density of GCs in units of M_sun / kpc^2
-        :param center_x: center of rendering area in arcsec
-        :param center_y: center of rendering area in arcsec
-        :return: an instance of Realization that includes the GC's
+
+        :param log10_mgc_mean: median GC mass in solar masses
+        :param log10_mgc_sigma: standard deviation of log-normal GC mass function in dex
+        :param rendering_radius_arcsec: radius around lensed images in which to render GCs [arcsec]
+        :param gc_density_profile: string specifying the GC density profile, options include KING and PTMASS
+        :param gc_size_mean: median GC half-mass radius in pc
+        :param gc_size_sigma: scatter in dex of GC half-mass radius
+        :param gc_concentration_mean: median concentration of GC when using the King profile
+        :param gc_concentration_sigma: standard deviation of the King concentration c = log10(r_t/r_c)
+        :param gc_surface_mass_density: projected surface mass density in GCs integrated over the mass functino [M_sun / kpc^2]
+        :param center_x: x-coordinate around which to render GCs
+        :param center_y: y-coordinate around which to render GCs
+        :return: globular clusters added to the realiztion
         """
 
         if isinstance(center_x, int) or isinstance(center_x, float):
@@ -216,18 +218,14 @@ class RealizationExtensions(object):
             GCS = []
             for (m_gc, x_center_gc, y_center_gc) in zip(m, x, y):
                 unique_tag = np.random.rand()
-                if gc_density_profile == 'SPL_CORE':
-                    gamma = np.random.uniform(gamma_mean - gamma_sigma, gamma_mean + gamma_sigma)
-                    r_core_pc = np.random.uniform(gc_size_mean - gc_size_sigma, gc_size_mean + gc_size_sigma) \
-                                * (m_gc / 10 ** 5) ** (1 / 3)
-                    # The SPL_CORE mass is defined within a "size" radius; we set that radius to a fixed large
-                    # multiple of the core radius so it encloses ~all the mass (>99.9% for gamma >~ 6), making the
-                    # core radius the only size parameter. r_core ~ half-mass radius for a steep slope.
-                    size_to_core_ratio = 20.0
-                    gc_profile_args = {'gamma': gamma,
-                                       'gc_size_pc': size_to_core_ratio * r_core_pc,
-                                       'gc_concentration': size_to_core_ratio}
-                    profile = GlobularCluster(m_gc, x_center_gc, y_center_gc, lens_cosmo.z_lens, lens_cosmo,
+                if gc_density_profile == 'KING':
+
+                    gc_r_half = gc_size_mean * 10 ** np.random.normal(0, gc_size_sigma)
+                    gc_c = gc_concentration_mean + np.random.normal(0, gc_concentration_sigma)
+                    gc_c = np.clip(gc_c, 0.25, 6.0)
+                    gc_profile_args = {'r_h': gc_r_half,
+                                       'c': gc_c}
+                    profile = GlobularClusterKing(m_gc, x_center_gc, y_center_gc, lens_cosmo.z_lens, lens_cosmo,
                                               gc_profile_args, unique_tag)
                     GCS.append(profile)
 

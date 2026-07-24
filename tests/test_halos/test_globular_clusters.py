@@ -1,89 +1,79 @@
 import numpy.testing as npt
-from pyHalo.Halos.lens_cosmo import LensCosmo
-from lenstronomy.LensModel.Profiles.splcore import SPLCORE
-from pyHalo.Halos.HaloModels.globular_cluster import GlobularCluster
-import pytest
 import numpy as np
+import pytest
+from pyHalo.Halos.lens_cosmo import LensCosmo
+from pyHalo.Halos.HaloModels.globular_cluster import GlobularClusterKing
 
 
 class TestGlobularClusters(object):
 
     def setup_method(self):
-
         self.zhalo = 0.4
         self.zsource = 2.0
         self.lens_cosmo = LensCosmo(self.zhalo, self.zsource, None)
-        self.splcore = SPLCORE()
 
     def test_lenstronomy_ID(self):
-
         mass = 10 ** 5
-        args = {'gamma': 2.5,
-                'gc_size_pc': 100,
-                'gc_concentration': 50}
-        profile = GlobularCluster(mass, 0.0, 0.0, self.zhalo, self.lens_cosmo,
-                                  args, 1)
+        args = {'r_h': 2.5, 'c': 2.0}
+        profile = GlobularClusterKing(mass, 0.0, 0.0, self.zhalo, self.lens_cosmo,
+                                      args, 1)
         lenstronomy_ID = profile.lenstronomy_ID
-        npt.assert_string_equal(lenstronomy_ID[0], 'SPL_CORE')
+        npt.assert_string_equal(lenstronomy_ID[0], 'KING')
 
     def test_lenstronomy_args(self):
-
-        logM = 5.0
-        mass = 10 ** logM
-        args = {'gamma': 2.5,
-                'gc_size_pc': 100,
-                'gc_concentration': 50}
-        profile = GlobularCluster(mass, 0.0, 0.0, self.zhalo, self.lens_cosmo,
-                                  args, 1)
-        lenstronomy_args, _ = profile.lenstronomy_params
+        mass = 10 ** 5.0
+        args = {'r_h': 2.5, 'c': 2.0}
+        profile = GlobularClusterKing(mass, 0.0, 0.0, self.zhalo, self.lens_cosmo,
+                                      args, 1)
+        lenstronomy_args, delta_z = profile.lenstronomy_params
+        assert delta_z is None
+        kw = lenstronomy_args[0]
+        for key in ['sigma0', 'r_h', 'c', 'center_x', 'center_y']:
+            assert key in kw
+        # r_h carried through to arcsec, c passed straight through
+        kpc_per_arcsec = profile.lens_cosmo.cosmo.kpc_proper_per_asec(profile.z)
+        npt.assert_almost_equal(kw['r_h'], 1e-3 * args['r_h'] / kpc_per_arcsec)
+        npt.assert_almost_equal(kw['c'], args['c'])
 
     def test_mass(self):
-
         logM = 6.0
         mass = 10 ** logM
-        args = {'gamma': 3.2,
-                'gc_size_pc': 100,
-                'gc_concentration': 15.0}
-        profile = GlobularCluster(mass, 0.0, 0.0, self.zhalo, self.lens_cosmo,
-                                  args, 1)
-        profile_args = profile.profile_args
-        rho0 = profile_args[0]
-        r_core = profile_args[3]
-        r_max = profile_args[1]
-        gamma = profile_args[2]
-        total_mass = profile._prof.mass_3d(r_max, rho0, r_core, gamma)
-        npt.assert_almost_equal(total_mass, mass)
+        args = {'r_h': 3.0, 'c': 1.5}
+        profile = GlobularClusterKing(mass, 0.0, 0.0, self.zhalo, self.lens_cosmo,
+                                      args, 1)
 
+        # profile_args = (sigma0 [Msun/pc^2], r_h [pc], c)
+        sigma0_pc, r_h_pc, c = profile.profile_args
+        npt.assert_almost_equal(r_h_pc, args['r_h'])
+        npt.assert_almost_equal(c, args['c'])
+
+        # King is a 2D-only profile: total *projected* mass == input mass
+        total_mass = profile._prof.mass_2d_lens(1e10, sigma0_pc, r_h_pc, c)[0]
+        npt.assert_almost_equal(total_mass / mass, 1.0, 6)
+
+        # r_h really is the projected half-mass radius
+        half_mass = profile._prof.mass_2d_lens(r_h_pc, sigma0_pc, r_h_pc, c)[0]
+        npt.assert_almost_equal(half_mass / total_mass, 0.5, 3)
+
+        # same check in lenstronomy (convergence) units
         kpc_per_arcsec = profile.lens_cosmo.cosmo.kpc_proper_per_asec(profile.z)
-        lenstronomy_args = profile.lenstronomy_params[0]
-        sigma0 = lenstronomy_args[0]['sigma0']
-        rcore = lenstronomy_args[0]['r_core']
-        gamma = lenstronomy_args[0]['gamma']
-        r_max = profile_args[1] / kpc_per_arcsec
-        sigma_crit_mpc = profile.lens_cosmo.get_sigma_crit_lensing(profile.z, profile.lens_cosmo.z_source)
-        sigma_crit_arcsec = sigma_crit_mpc * (0.001 * kpc_per_arcsec) ** 2
-        total_mass = profile._prof.mass_3d(r_max, sigma0 / rcore, rcore, gamma) * sigma_crit_arcsec
-        npt.assert_almost_equal(total_mass / mass, 1, 1)
+        kw = profile.lenstronomy_params[0][0]
+        sigma0, r_h_arcsec, c = kw['sigma0'], kw['r_h'], kw['c']
+        sigma_crit_mpc = profile.lens_cosmo.get_sigma_crit_lensing(
+            profile.z, profile.lens_cosmo.z_source)
+        sigma_crit_arcsec = sigma_crit_mpc * (0.001 * kpc_per_arcsec) ** 2  # Msun/arcsec^2
+        m2d_conv = profile._prof.mass_2d_lens(1e10, sigma0, r_h_arcsec, c)[0]
+        total_mass_ls = m2d_conv * sigma_crit_arcsec
+        npt.assert_almost_equal(total_mass_ls / mass, 1.0, 4)
 
-        # test using the lenstronomy density method
-        r = np.linspace(0.00001, 1.0, 100000) * args['gc_size_pc'] * 1e-3
-        rho = profile.density_profile_3d_lenstronomy(r)
-        m = np.trapezoid(4 * np.pi * r ** 2 * rho, r)
-        npt.assert_almost_equal(m / 10 ** logM, 1, 4)
+        # integrate the projected surface density out to the tidal radius r_t
+        r_core_pc = float(profile._prof._r_core(r_h_pc, c))
+        r_t_pc = r_core_pc * 10 ** c
+        r = np.linspace(1e-5, 1.0, 200000) * r_t_pc
+        sigma = profile.density_profile_2d_lenstronomy(r)   # Msun/pc^2 at r [pc]
+        m2d = np.trapezoid(2 * np.pi * r * sigma, r)
+        npt.assert_almost_equal(m2d / mass, 1.0, 3)
 
-        # the total mass will be slightly larger
-        r = np.linspace(0.00001, 10.0, 2000000) * args['gc_size_pc'] * 1e-3
-        rho = profile.density_profile_3d_lenstronomy(r)
-        m_total = np.trapezoid(4 * np.pi * r ** 2 * rho, r)
-        npt.assert_almost_equal(m_total / 10 ** logM, 1.5918, 4)
-
-        # test the average mass, rather than central density
-        r = np.linspace(0.00001, 1.0, 100000) * args['gc_size_pc'] * 1e-3
-        rho = profile.density_profile_3d_lenstronomy(r)
-        m_total = np.trapezoid(4 * np.pi * r ** 2 * rho, r)
-        volume = 4 * np.pi / 3 * (args['gc_size_pc']) ** 3
-        average_density = m_total / volume
-        npt.assert_almost_equal(average_density, 0.2387, 4)
 
 if __name__ == '__main__':
     pytest.main()

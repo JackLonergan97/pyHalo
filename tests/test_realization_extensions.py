@@ -85,7 +85,7 @@ class TestRealizationExtensions(object):
             else:
                 npt.assert_string_equal(halo.lenstronomy_ID[0], 'POINT_MASS')
 
-    def test_splcore_globular_clusters(self):
+    def test_king_globular_clusters(self):
 
         cdm = CDM(0.5, 2.0, sigma_sub=0.01, LOS_normalization=0.1)
         n_halos_cdm = len(cdm.halos)
@@ -94,7 +94,7 @@ class TestRealizationExtensions(object):
         log10_mgc_sigma = 0.6
         rendering_radius_arcsec = 10.0
         cdm_with_GCs = ext.add_globular_clusters(
-            log10_mgc_mean, log10_mgc_sigma, rendering_radius_arcsec, gc_density_profile='SPL_CORE',
+            log10_mgc_mean, log10_mgc_sigma, rendering_radius_arcsec, gc_density_profile='KING',
             center_x=0, center_y=0
         )
         n_halos_cdm_plus_gcs = len(cdm_with_GCs.halos)
@@ -103,7 +103,7 @@ class TestRealizationExtensions(object):
             if halo.mdef == 'TNFW':
                 pass
             else:
-                npt.assert_string_equal(halo.lenstronomy_ID[0], 'SPL_CORE')
+                npt.assert_string_equal(halo.lenstronomy_ID[0], 'KING')
 
     def test_toSIDM_evolving_fix_tovertc(self):
 
