@@ -50,11 +50,11 @@ class TestGlobularClusters(object):
         npt.assert_almost_equal(c, args['c'])
 
         # King is a 2D-only profile: total *projected* mass == input mass
-        total_mass = profile._prof.mass_2d_lens(1e10, sigma0_pc, r_h_pc, c)[0]
+        total_mass = profile._prof.mass_2d_lens(1e10, sigma0_pc, r_h_pc, c)
         npt.assert_almost_equal(total_mass / mass, 1.0, 6)
 
         # r_h really is the projected half-mass radius
-        half_mass = profile._prof.mass_2d_lens(r_h_pc, sigma0_pc, r_h_pc, c)[0]
+        half_mass = profile._prof.mass_2d_lens(r_h_pc, sigma0_pc, r_h_pc, c)
         npt.assert_almost_equal(half_mass / total_mass, 0.5, 3)
 
         # same check in lenstronomy (convergence) units
@@ -64,7 +64,7 @@ class TestGlobularClusters(object):
         sigma_crit_mpc = profile.lens_cosmo.get_sigma_crit_lensing(
             profile.z, profile.lens_cosmo.z_source)
         sigma_crit_arcsec = sigma_crit_mpc * (0.001 * kpc_per_arcsec) ** 2  # Msun/arcsec^2
-        m2d_conv = profile._prof.mass_2d_lens(1e10, sigma0, r_h_arcsec, c)[0]
+        m2d_conv = profile._prof.mass_2d_lens(1e10, sigma0, r_h_arcsec, c)
         total_mass_ls = m2d_conv * sigma_crit_arcsec
         npt.assert_almost_equal(total_mass_ls / mass, 1.0, 4)
 
@@ -72,7 +72,7 @@ class TestGlobularClusters(object):
         r_core_pc = float(profile._prof._r_core(r_h_pc, c))
         r_t_pc = r_core_pc * 10 ** c
         r = np.linspace(1e-5, 1.0, 200000) * r_t_pc
-        sigma = profile.density_profile_2d_lenstronomy(r)   # Msun/pc^2 at r [pc]
+        sigma = profile.density_profile_2d(r)   # Msun/pc^2 at r [pc]
         m2d = np.trapezoid(2 * np.pi * r * sigma, r)
         npt.assert_almost_equal(m2d / mass, 1.0, 3)
 
