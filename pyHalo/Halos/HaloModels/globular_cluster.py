@@ -101,7 +101,7 @@ class GlobularClusterKing(Halo):
             'c', the concentration log10(r_t / r_c) where r_c is the GC core size
         :param unique_tag: number associated with class
         """
-        self._prof = King()
+        self._prof = _KING
         self._lens_cosmo = lens_cosmo_instance
         mdef = 'KING'
         is_subhalo = False
