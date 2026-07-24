@@ -15,10 +15,12 @@ class TestGlobularClusters(object):
     def test_lenstronomy_ID(self):
         mass = 10 ** 5
         args = {'r_h': 2.5, 'c': 2.0}
+
         profile = GlobularClusterKing(mass, 0.0, 0.0, self.zhalo, self.lens_cosmo,
                                       args, 1)
         lenstronomy_ID = profile.lenstronomy_ID
         npt.assert_string_equal(lenstronomy_ID[0], 'KING')
+
 
     def test_lenstronomy_args(self):
         mass = 10 ** 5.0
