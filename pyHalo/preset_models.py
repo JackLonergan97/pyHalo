@@ -35,7 +35,7 @@ def preset_model_from_name(name, custom_function=None):
         return ULDM
     elif name == 'DMSubhalosEmulator':
         from pyHalo.PresetModels.external import DMSubhalosFromEmulator
-        return DMFromEmulator
+        return DMSubhalosFromEmulator
     elif name == 'WDM_mixed':
         from pyHalo.PresetModels.wdm import WDM_mixed
         return WDM_mixed
